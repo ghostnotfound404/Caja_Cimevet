@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let egresos = [];
     let cajero = null;
     let cajaInicial = 0;
-    let servicioSeleccionado = '';
+    let tipoSeleccionado = '';
     let medioPagoSeleccionado = '';
 
     // Elementos del DOM
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const nombreCajeroInput = document.getElementById('nombre-cajero');
     const montoCajaInput = document.getElementById('monto-caja');
     const tituloCajero = document.getElementById('titulo-cajero');
+    const listaEgresos = document.getElementById('lista-egresos');
 
     // Iniciar sistema
     btnIniciar.addEventListener('click', () => {
@@ -29,20 +30,24 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Servicios y medios de pago (botones)
-    document.querySelectorAll('.btn-servicio').forEach(btn => {
+    // Tipos y medios de pago (botones)
+    document.querySelectorAll('.btn-tipo').forEach(btn => {
         btn.addEventListener('click', () => {
-            servicioSeleccionado = btn.dataset.servicio;
-            document.querySelectorAll('.btn-servicio').forEach(b => b.style.backgroundColor = '');
-            btn.style.backgroundColor = '#45a049';
+            tipoSeleccionado = btn.dataset.tipo;
+            document.querySelectorAll('.btn-tipo').forEach(b => {
+                b.classList.remove('seleccionado');
+            });
+            btn.classList.add('seleccionado');
         });
     });
 
     document.querySelectorAll('.btn-pago').forEach(btn => {
         btn.addEventListener('click', () => {
             medioPagoSeleccionado = btn.dataset.pago;
-            document.querySelectorAll('.btn-pago').forEach(b => b.style.backgroundColor = '');
-            btn.style.backgroundColor = '#45a049';
+            document.querySelectorAll('.btn-pago').forEach(b => {
+                b.classList.remove('seleccionado');
+            });
+            btn.classList.add('seleccionado');
         });
     });
 
@@ -66,9 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const mascota = document.getElementById('mascota').value;
         const peso = document.getElementById('peso').value;
         const propietario = document.getElementById('propietario').value;
+        const nombreServicio = document.getElementById('nombre-servicio').value;
         const precio = parseFloat(document.getElementById('precio').value);
 
-        if (!mascota || !propietario || !servicioSeleccionado || !precio || !medioPagoSeleccionado) {
+        if (!mascota || !propietario || !nombreServicio || !tipoSeleccionado || !precio || !medioPagoSeleccionado) {
             alert('Completa todos los campos obligatorios.');
             return;
         }
@@ -77,7 +83,8 @@ document.addEventListener('DOMContentLoaded', () => {
             mascota,
             peso: peso || 'N/A',
             propietario,
-            servicio: servicioSeleccionado,
+            servicio: nombreServicio,
+            tipo: tipoSeleccionado,
             precio,
             medioPago: medioPagoSeleccionado
         };
@@ -97,8 +104,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        egresos.push({ monto, descripcion });
+        const egreso = {
+            monto,
+            descripcion: descripcion || 'Sin descripción'
+        };
+
+        egresos.push(egreso);
         guardarDatos();
+        actualizarEgresos();
         document.getElementById('monto-egreso').value = '';
         document.getElementById('descripcion-egreso').value = '';
     }
@@ -112,7 +125,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.mascota}</td>
+                <td>${item.peso}</td>
+                <td>${item.propietario}</td>
                 <td>${item.servicio}</td>
+                <td>${item.tipo}</td>
                 <td>S/ ${item.precio.toFixed(2)}</td>
                 <td>${item.medioPago}</td>
                 <td><button class="btn-eliminar" data-index="${index}">Eliminar</button></td>
@@ -134,22 +150,48 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function actualizarEgresos() {
+        listaEgresos.innerHTML = '';
+        let totalEgresos = 0;
+
+        egresos.forEach((egreso, index) => {
+            const div = document.createElement('div');
+            div.className = 'egreso-item';
+            div.innerHTML = `
+                <span>${egreso.descripcion}: S/ ${egreso.monto.toFixed(2)}</span>
+                <button class="btn-eliminar" data-index="${index}">Eliminar</button>
+            `;
+            listaEgresos.appendChild(div);
+            totalEgresos += egreso.monto;
+        });
+
+        // Eventos para botones eliminar egresos
+        document.querySelectorAll('#lista-egresos .btn-eliminar').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = e.target.dataset.index;
+                egresos.splice(index, 1);
+                guardarDatos();
+                actualizarEgresos();
+            });
+        });
+    }
+
     function cuadrarCaja() {
         const resumenCierre = document.getElementById('resumen-cierre');
         resumenCierre.classList.remove('hidden');
 
-        // Resumen por servicio
-        const servicios = {};
+        // Resumen por tipo de servicio
+        const tipos = {};
         items.forEach(item => {
-            servicios[item.servicio] = (servicios[item.servicio] || 0) + item.precio;
+            tipos[item.tipo] = (tipos[item.tipo] || 0) + item.precio;
         });
 
-        let htmlServicios = '<h3>Por Servicio:</h3><ul>';
-        for (const [servicio, total] of Object.entries(servicios)) {
-            htmlServicios += `<li>${servicio}: S/ ${total.toFixed(2)}</li>`;
+        let htmlTipos = '<h3>Ingresos por Tipo de Servicio:</h3><ul>';
+        for (const [tipo, total] of Object.entries(tipos)) {
+            htmlTipos += `<li>${tipo}: S/ ${total.toFixed(2)}</li>`;
         }
-        htmlServicios += '</ul>';
-        document.getElementById('resumen-servicios').innerHTML = htmlServicios;
+        htmlTipos += '</ul>';
+        document.getElementById('resumen-tipos').innerHTML = htmlTipos;
 
         // Resumen por medio de pago
         const pagos = {};
@@ -157,61 +199,46 @@ document.addEventListener('DOMContentLoaded', () => {
             pagos[item.medioPago] = (pagos[item.medioPago] || 0) + item.precio;
         });
 
-        let htmlPagos = '<h3>Por Medio de Pago:</h3><ul>';
+        let htmlPagos = '<h3>Ingresos por Medio de Pago:</h3><ul>';
         for (const [pago, total] of Object.entries(pagos)) {
             htmlPagos += `<li>${pago}: S/ ${total.toFixed(2)}</li>`;
         }
         htmlPagos += '</ul>';
         document.getElementById('resumen-pagos').innerHTML = htmlPagos;
 
+        // Resumen de egresos
+        let htmlEgresos = '<h3>Egresos:</h3><ul>';
+        egresos.forEach(egreso => {
+            htmlEgresos += `<li>${egreso.descripcion}: S/ ${egreso.monto.toFixed(2)}</li>`;
+        });
+        htmlEgresos += '</ul>';
+        document.getElementById('resumen-egresos').innerHTML = htmlEgresos;
+
         // Total general
         const totalIngresos = items.reduce((sum, item) => sum + item.precio, 0);
         const totalEgresos = egresos.reduce((sum, egreso) => sum + egreso.monto, 0);
-        const totalFinal = cajaInicial + totalIngresos - totalEgresos;
+        const totalEfectivo = items
+            .filter(item => item.medioPago === 'Efectivo')
+            .reduce((sum, item) => sum + item.precio, 0);
+        
+        const totalFinal = cajaInicial + totalEfectivo - totalEgresos;
 
         document.getElementById('total-final').innerHTML = `
             <h3>Total Caja:</h3>
-            <p>Ingresos: S/ ${totalIngresos.toFixed(2)}</p>
-            <p>Egresos: S/ ${totalEgresos.toFixed(2)}</p>
-            <p><strong>Total Final: S/ ${totalFinal.toFixed(2)}</strong></p>
+            <p>Efectivo en caja: S/ ${(cajaInicial + totalEfectivo).toFixed(2)}</p>
+            <p>Total egresos: S/ ${totalEgresos.toFixed(2)}</p>
+            <p><strong>Total final: S/ ${totalFinal.toFixed(2)}</strong></p>
         `;
     }
 
     function exportarExcel() {
-        const ruta = prompt('Ingresa la ruta donde guardar el archivo (ej: C:/Downloads):', 'C:/Downloads');
-        if (!ruta) return;
-
-        const data = {
-            cajero,
-            cajaInicial,
-            items,
-            egresos
-        };
-
-        fetch('backend/exportar.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data, ruta })
-        })
-        .then(response => response.text())
-        .then(message => alert(message))
-        .catch(error => alert('Error: ' + error));
+        alert("Esta función se conectará con PHP más adelante");
     }
 
     function cerrarCaja() {
         if (confirm('¿Estás seguro de cerrar la caja? Todos los datos se borrarán.')) {
-            fetch('backend/cierre_caja.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cajero, items, egresos, cajaInicial })
-            })
-            .then(response => response.text())
-            .then(message => {
-                alert(message);
-                localStorage.removeItem('veterinaria_data');
-                location.reload();
-            })
-            .catch(error => alert('Error: ' + error));
+            localStorage.removeItem('veterinaria_data');
+            location.reload();
         }
     }
 
@@ -219,11 +246,12 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('mascota').value = '';
         document.getElementById('peso').value = '';
         document.getElementById('propietario').value = '';
+        document.getElementById('nombre-servicio').value = '';
         document.getElementById('precio').value = '';
-        servicioSeleccionado = '';
+        tipoSeleccionado = '';
         medioPagoSeleccionado = '';
-        document.querySelectorAll('.btn-servicio, .btn-pago').forEach(btn => {
-            btn.style.backgroundColor = '';
+        document.querySelectorAll('.btn-tipo.seleccionado, .btn-pago.seleccionado').forEach(btn => {
+            btn.classList.remove('seleccionado');
         });
     }
 
@@ -240,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 items = parsed.items || [];
                 egresos = parsed.egresos || [];
                 actualizarTabla();
+                actualizarEgresos();
             }
         }
     }

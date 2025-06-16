@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Modal Inicial (Cajero y Caja) -->
+    <!-- Modal Inicial -->
     <div id="modal-inicio" class="modal">
         <div class="modal-content">
             <h2>Apertura de Caja</h2>
@@ -17,7 +17,7 @@
         </div>
     </div>
 
-    <!-- Contenedor Principal (oculto hasta iniciar) -->
+    <!-- Sistema Principal -->
     <div id="sistema" class="hidden">
         <h1 id="titulo-cajero"></h1>
         
@@ -27,17 +27,22 @@
             <input type="number" class="sin-flechas" id="peso" placeholder="Peso" required>
             <input type="text" id="propietario" placeholder="Propietario (solo letras)" pattern="[A-Za-z\s]+" required>
             
-            <div class="grupo-botones">
-                <h3>Servicio:</h3>
-                <input type="text" id="tipo-servicio" placeholder="Servicio (solo letras)" pattern="[A-Za-z\s]+" required>
-                <button type="button" class="btn-servicio" data-servicio="Clínica">Clínica</button>
-                <button type="button" class="btn-servicio" data-servicio="Farmacia">Farmacia</button>
-                <button type="button" class="btn-servicio" data-servicio="Petshop">Petshop</button>
+            <div class="grupo-servicio">
+                <div>
+                    <h3>Servicio:</h3>
+                    <input type="text" id="nombre-servicio" placeholder="Nombre del servicio">
+                </div>
+                <div>
+                    <h3>Tipo:</h3>
+                    <button type="button" class="btn-tipo" data-tipo="Clínica">Clínica</button>
+                    <button type="button" class="btn-tipo" data-tipo="Farmacia">Farmacia</button>
+                    <button type="button" class="btn-tipo" data-tipo="Petshop">Petshop</button>
+                </div>
             </div>
             
-            <input type="number" id="precio" placeholder="Precio (ej. 50.00)" step="0.01" required>
+            <input type="number" class="sin-flechas" id="precio" placeholder="Precio (ej. 50.00)" step="0.01" required>
             
-            <div class="grupo-botones-vertical">
+            <div class="grupo-botones">
                 <h3>Medio de Pago:</h3>
                 <button type="button" class="btn-pago" data-pago="Efectivo">Efectivo</button>
                 <button type="button" class="btn-pago" data-pago="Yape">Yape</button>
@@ -58,6 +63,7 @@
                         <th>Peso</th>
                         <th>Propietario</th>
                         <th>Servicio</th>
+                        <th>Tipo</th>
                         <th>Precio</th>
                         <th>Medio Pago</th>
                         <th>Acción</th>
@@ -71,9 +77,10 @@
         <!-- Egresos -->
         <div class="egresos">
             <h2>Egresos</h2>
-            <input type="number" id="monto-egreso" placeholder="Monto" step="0.01">
+            <input type="number" class="sin-flechas" id="monto-egreso" placeholder="Monto" step="0.01">
             <input type="text" id="descripcion-egreso" placeholder="Descripción">
             <button id="agregar-egreso">Agregar Egreso</button>
+            <div id="lista-egresos"></div>
         </div>
         
         <!-- Botones Finales -->
@@ -83,11 +90,12 @@
             <button id="cerrar-caja">Cerrar Caja</button>
         </div>
         
-        <!-- Resumen de Cierre (oculto) -->
+        <!-- Resumen de Cierre -->
         <div id="resumen-cierre" class="hidden">
             <h2>Resumen de Cierre</h2>
-            <div id="resumen-servicios"></div>
+            <div id="resumen-tipos"></div>
             <div id="resumen-pagos"></div>
+            <div id="resumen-egresos"></div>
             <div id="total-final"></div>
         </div>
     </div>
