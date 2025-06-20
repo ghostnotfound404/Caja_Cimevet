@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cuadrar caja
     document.getElementById('cuadrar-caja').addEventListener('click', cuadrarCaja);
 
-    // Exportar a Excel (CSV)
+    // Exportar a Excel
     document.getElementById('exportar-excel').addEventListener('click', exportarExcel);
 
     // Cerrar caja
@@ -74,21 +74,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const precio = parseFloat(document.getElementById('precio').value);
         const observaciones = document.getElementById('observaciones').value;
 
-        // Solo validamos campos obligatorios: servicio, tipo, precio y medio de pago
         if (!nombreServicio || !tipoSeleccionado || !precio || !medioPagoSeleccionado) {
             alert('Completa los campos obligatorios: Servicio, Tipo, Precio y Medio de Pago.');
             return;
         }
 
         const item = {
-            mascota: mascota || 'N/A',
-            peso: peso || 'N/A',
-            propietario: propietario || 'N/A',
+            mascota: mascota || '',
+            peso: peso || '',
+            propietario: propietario || '',
             servicio: nombreServicio,
             tipo: tipoSeleccionado,
             precio,
             medioPago: medioPagoSeleccionado,
-            observaciones: observaciones || 'N/A',
+            observaciones: observaciones || '',
             fecha: new Date().toLocaleString()
         };
 
@@ -228,122 +227,138 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function exportarExcel() {
-        // Crear contenido CSV con estructura mejorada
-        let csvContent = "data:text/csv;charset=utf-8,";
-        
-        // 1. Encabezado del reporte
-        csvContent += "=== REPORTE VETERINARIA ===\n";
-        csvContent += `Cajero: ${cajero}\n`;
-        csvContent += `Fecha: ${new Date().toLocaleDateString()}\n\n`;
-        
-        // 2. Información de caja
-        csvContent += "=== INFORMACIÓN DE CAJA ===\n";
-        csvContent += `Caja Inicial, S/ ${cajaInicial.toFixed(2)}\n\n`;
-        
-        // 3. Detalle de clientes y servicios (con observaciones)
-        csvContent += "=== DETALLE DE CLIENTES Y SERVICIOS ===\n";
-        csvContent += "No.,Fecha,Hora,Mascota,Peso,Propietario,Servicio,Tipo Servicio,Precio,Medio de Pago,Observaciones\n";
-        
-        // Datos de registros con numeración
-        items.forEach((item, index) => {
-            const [fecha, hora] = item.fecha.split(', ');
-            const row = [
-                index + 1,
-                fecha,
-                hora,
-                `"${item.mascota}"`,
-                item.peso,
-                `"${item.propietario}"`,
-                `"${item.servicio}"`,
-                item.tipo,
-                `S/ ${item.precio.toFixed(2)}`,
-                item.medioPago,
-                `"${item.observaciones}"`
-            ].join(",");
-            csvContent += row + "\n";
-        });
+        // Crear un nuevo libro de trabajo
+        const workbook = XLSX.utils.book_new();
 
-        // Totales de servicios
-        const totalIngresos = items.reduce((sum, item) => sum + item.precio, 0);
-        csvContent += `\nTotal Ingresos,S/ ${totalIngresos.toFixed(2)}\n\n`;
-        
-        // 4. Detalle de egresos
-        if (egresos.length > 0) {
-            csvContent += "=== DETALLE DE EGRESOS ===\n";
-            csvContent += "No.,Fecha,Hora,Descripción,Monto\n";
-            
-            egresos.forEach((egreso, index) => {
-                const [fecha, hora] = egreso.fecha.split(', ');
-                const row = [
+        // 1. Hoja de Servicios
+        const serviciosData = [
+            ["No.", "Fecha", "Hora", "Mascota", "Peso", "Propietario", "Servicio", "Tipo Servicio", "Precio", "Medio de Pago", "Observaciones"],
+            ...items.map((item, index) => {
+                const [fecha, hora] = item.fecha.split(', ');
+                return [
                     index + 1,
                     fecha,
                     hora,
-                    `"${egreso.descripcion}"`,
-                    `S/ ${egreso.monto.toFixed(2)}`
-                ].join(",");
-                csvContent += row + "\n";
-            });
+                    item.mascota,
+                    item.peso,
+                    item.propietario,
+                    item.servicio,
+                    item.tipo,
+                    item.precio,
+                    item.medioPago,
+                    item.observaciones
+                ];
+            }),
+            ["", "", "", "", "", "", "", "Total Ingresos:", items.reduce((sum, item) => sum + item.precio, 0), "", ""]
+        ];
+
+        const serviciosSheet = XLSX.utils.aoa_to_sheet(serviciosData);
+        
+        // Formatear columnas monetarias
+        serviciosSheet['!cols'] = [
+            {wch: 5},  // No.
+            {wch: 12}, // Fecha
+            {wch: 8},  // Hora
+            {wch: 15}, // Mascota
+            {wch: 8},  // Peso
+            {wch: 20}, // Propietario
+            {wch: 20}, // Servicio
+            {wch: 15}, // Tipo Servicio
+            {wch: 10}, // Precio
+            {wch: 15}, // Medio de Pago
+            {wch: 25}  // Observaciones
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, serviciosSheet, "Servicios");
+
+        // 2. Hoja de Egresos (solo si hay egresos)
+        if (egresos.length > 0) {
+            const egresosData = [
+                ["No.", "Fecha", "Hora", "Descripción", "Monto"],
+                ...egresos.map((egreso, index) => {
+                    const [fecha, hora] = egreso.fecha.split(', ');
+                    return [
+                        index + 1,
+                        fecha,
+                        hora,
+                        egreso.descripcion,
+                        egreso.monto
+                    ];
+                }),
+                ["", "", "", "Total Egresos:", egresos.reduce((sum, egreso) => sum + egreso.monto, 0)]
+            ];
+
+            const egresosSheet = XLSX.utils.aoa_to_sheet(egresosData);
             
-            const totalEgresos = egresos.reduce((sum, egreso) => sum + egreso.monto, 0);
-            csvContent += `\nTotal Egresos,S/ ${totalEgresos.toFixed(2)}\n\n`;
-        } else {
-            csvContent += "=== NO HAY EGRESOS REGISTRADOS ===\n\n";
+            // Formatear columnas
+            egresosSheet['!cols'] = [
+                {wch: 5},   // No.
+                {wch: 12},  // Fecha
+                {wch: 8},   // Hora
+                {wch: 30},  // Descripción
+                {wch: 10}   // Monto
+            ];
+            
+            XLSX.utils.book_append_sheet(workbook, egresosSheet, "Egresos");
         }
-        
-        // 5. Resumen por tipo de servicio
-        csvContent += "=== INGRESOS POR TIPO DE SERVICIO ===\n";
-        csvContent += "Tipo Servicio,Monto\n";
-        
-        const tipos = {};
-        items.forEach(item => {
-            tipos[item.tipo] = (tipos[item.tipo] || 0) + item.precio;
-        });
-        
-        for (const [tipo, total] of Object.entries(tipos)) {
-            csvContent += `${tipo},S/ ${total.toFixed(2)}\n`;
-        }
-        csvContent += "\n";
-        
-        // 6. Resumen por medio de pago
-        csvContent += "=== INGRESOS POR MEDIO DE PAGO ===\n";
-        csvContent += "Medio de Pago,Monto\n";
-        
-        const pagos = {};
-        items.forEach(item => {
-            pagos[item.medioPago] = (pagos[item.medioPago] || 0) + item.precio;
-        });
-        
-        for (const [pago, total] of Object.entries(pagos)) {
-            csvContent += `${pago},S/ ${total.toFixed(2)}\n`;
-        }
-        csvContent += "\n";
-        
-        // 7. Cuadre de caja final
-        csvContent += "=== CUADRE DE CAJA ===\n";
+
+        // 3. Hoja de Resumen
+        const totalIngresos = items.reduce((sum, item) => sum + item.precio, 0);
+        const totalEgresos = egresos.reduce((sum, egreso) => sum + egreso.monto, 0);
         const totalEfectivo = items
             .filter(item => item.medioPago === 'Efectivo')
             .reduce((sum, item) => sum + item.precio, 0);
-        const totalEgresos = egresos.reduce((sum, egreso) => sum + egreso.monto, 0);
         const totalFinal = cajaInicial + totalEfectivo - totalEgresos;
-        
-        csvContent += `Caja Inicial,S/ ${cajaInicial.toFixed(2)}\n`;
-        csvContent += `Ingresos en Efectivo,S/ ${totalEfectivo.toFixed(2)}\n`;
-        csvContent += `Egresos en Efectivo,S/ ${totalEgresos.toFixed(2)}\n`;
-        csvContent += `Total en Caja,S/ ${totalFinal.toFixed(2)}\n\n`;
-        
-        csvContent += "=== RESUMEN GENERAL ===\n";
-        csvContent += `Total Ingresos (todos los medios),S/ ${totalIngresos.toFixed(2)}\n`;
-        csvContent += `Total Egresos,S/ ${totalEgresos.toFixed(2)}\n`;
-        csvContent += `Diferencia (Ingresos - Egresos),S/ ${(totalIngresos - totalEgresos).toFixed(2)}\n`;
 
-        // Crear enlace de descarga
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `reporte_veterinaria_${cajero}_${new Date().toISOString().slice(0,10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        const resumenData = [
+            ["REPORTE VETERINARIA"],
+            [""],
+            ["Cajero:", cajero],
+            ["Fecha:", new Date().toLocaleDateString()],
+            [""],
+            ["INFORMACIÓN DE CAJA"],
+            ["Caja Inicial:", cajaInicial],
+            [""],
+            ["INGRESOS POR TIPO DE SERVICIO"],
+            ...Object.entries(
+                items.reduce((tipos, item) => {
+                    tipos[item.tipo] = (tipos[item.tipo] || 0) + item.precio;
+                    return tipos;
+                }, {})
+            ).map(([tipo, total]) => [tipo, total]),
+            [""],
+            ["INGRESOS POR MEDIO DE PAGO"],
+            ...Object.entries(
+                items.reduce((pagos, item) => {
+                    pagos[item.medioPago] = (pagos[item.medioPago] || 0) + item.precio;
+                    return pagos;
+                }, {})
+            ).map(([pago, total]) => [pago, total]),
+            [""],
+            ["CUADRE DE CAJA"],
+            ["Caja Inicial:", cajaInicial],
+            ["Ingresos en Efectivo:", totalEfectivo],
+            ["Egresos en Efectivo:", totalEgresos],
+            ["Total en Caja:", totalFinal],
+            [""],
+            ["RESUMEN GENERAL"],
+            ["Total Ingresos (todos los medios):", totalIngresos],
+            ["Total Egresos:", totalEgresos],
+            ["Diferencia (Ingresos - Egresos):", totalIngresos - totalEgresos]
+        ];
+
+        const resumenSheet = XLSX.utils.aoa_to_sheet(resumenData);
+        
+        // Formatear columnas
+        resumenSheet['!cols'] = [
+            {wch: 30},  // Descripción
+            {wch: 15}   // Valores
+        ];
+        
+        XLSX.utils.book_append_sheet(workbook, resumenSheet, "Resumen");
+
+        // Generar el archivo Excel
+        XLSX.writeFile(workbook, `reporte_veterinaria_${cajero}_${new Date().toISOString().slice(0,10)}.xlsx`);
     }
 
     function cerrarCaja() {
