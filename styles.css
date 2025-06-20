@@ -189,3 +189,51 @@ button:hover {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* Estilos para botones de acción */
+.acciones {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-editar, .btn-eliminar, .btn-guardar, .btn-cancelar,
+.btn-editar-egreso, .btn-guardar-egreso, .btn-cancelar-egreso {
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+
+.btn-editar, .btn-editar-egreso {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.btn-eliminar {
+    background-color: #f44336;
+    color: white;
+}
+
+.btn-guardar, .btn-guardar-egreso {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-cancelar, .btn-cancelar-egreso {
+    background-color: #ff9800;
+    color: white;
+}
+
+/* Estilos para campos editables */
+.edit-field {
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+.egreso-item input {
+    padding: 5px;
+    margin: 0 5px;
+    width: 150px;
+}

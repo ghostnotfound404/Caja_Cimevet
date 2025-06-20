@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tipo: tipoSeleccionado,
             precio,
             medioPago: medioPagoSeleccionado,
-            observaciones: observaciones || '',
+            observaciones: observaciones || 'A',
             fecha: new Date().toLocaleString()
         };
 
@@ -126,6 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         items.forEach((item, index) => {
             const tr = document.createElement('tr');
+            tr.dataset.index = index;
             tr.innerHTML = `
                 <td>${item.mascota}</td>
                 <td>${item.peso}</td>
@@ -135,7 +136,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>S/ ${item.precio.toFixed(2)}</td>
                 <td>${item.medioPago}</td>
                 <td>${item.observaciones}</td>
-                <td><button class="btn-eliminar" data-index="${index}">Eliminar</button></td>
+                <td class="acciones">
+                    <button class="btn-editar" data-index="${index}">Editar</button>
+                    <button class="btn-eliminar" data-index="${index}">Eliminar</button>
+                </td>
             `;
             tbody.appendChild(tr);
             total += item.precio;
@@ -143,14 +147,98 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('total-items').textContent = `Total: S/ ${total.toFixed(2)}`;
 
+        // Eventos para botones editar
+        document.querySelectorAll('.btn-editar').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = e.target.dataset.index;
+                editarItem(index);
+            });
+        });
+
         // Eventos para botones eliminar
         document.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const index = e.target.dataset.index;
-                items.splice(index, 1);
-                guardarDatos();
-                actualizarTabla();
+                if (confirm('¿Estás seguro de eliminar este registro?')) {
+                    items.splice(index, 1);
+                    guardarDatos();
+                    actualizarTabla();
+                }
             });
+        });
+    }
+
+    function editarItem(index) {
+        const item = items[index];
+        const tr = document.querySelector(`tr[data-index="${index}"]`);
+        
+        // Convertir celdas en campos editables
+        tr.innerHTML = `
+            <td><input type="text" value="${item.mascota}" class="edit-field" data-field="mascota"></td>
+            <td><input type="text" value="${item.peso}" class="edit-field" data-field="peso"></td>
+            <td><input type="text" value="${item.propietario}" class="edit-field" data-field="propietario"></td>
+            <td><input type="text" value="${item.servicio}" class="edit-field" data-field="servicio" required></td>
+            <td>
+                <select class="edit-field" data-field="tipo">
+                    <option value="Clínica" ${item.tipo === 'Clínica' ? 'selected' : ''}>Clínica</option>
+                    <option value="Farmacia" ${item.tipo === 'Farmacia' ? 'selected' : ''}>Farmacia</option>
+                    <option value="Petshop" ${item.tipo === 'Petshop' ? 'selected' : ''}>Petshop</option>
+                </select>
+            </td>
+            <td><input type="number" value="${item.precio}" class="edit-field" data-field="precio" required step="0.01"></td>
+            <td>
+                <select class="edit-field" data-field="medioPago">
+                    <option value="Efectivo" ${item.medioPago === 'Efectivo' ? 'selected' : ''}>Efectivo</option>
+                    <option value="Tarjeta" ${item.medioPago === 'Tarjeta' ? 'selected' : ''}>Tarjeta</option>
+                    <option value="Transferencia" ${item.medioPago === 'Transferencia' ? 'selected' : ''}>Transferencia</option>
+                </select>
+            </td>
+            <td><input type="text" value="${item.observaciones}" class="edit-field" data-field="observaciones"></td>
+            <td class="acciones">
+                <button class="btn-guardar" data-index="${index}">Guardar</button>
+                <button class="btn-cancelar" data-index="${index}">Cancelar</button>
+            </td>
+        `;
+
+        // Evento para guardar cambios
+        tr.querySelector('.btn-guardar').addEventListener('click', () => {
+            const inputs = tr.querySelectorAll('.edit-field');
+            let isValid = true;
+            
+            // Validar campos requeridos
+            inputs.forEach(input => {
+                if (input.required && !input.value) {
+                    input.style.borderColor = 'red';
+                    isValid = false;
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+            
+            if (!isValid) {
+                alert('Completa los campos obligatorios.');
+                return;
+            }
+            
+            // Actualizar item
+            inputs.forEach(input => {
+                const field = input.dataset.field;
+                let value = input.value;
+                
+                if (field === 'precio') {
+                    value = parseFloat(value);
+                }
+                
+                items[index][field] = value;
+            });
+            
+            guardarDatos();
+            actualizarTabla();
+        });
+
+        // Evento para cancelar edición
+        tr.querySelector('.btn-cancelar').addEventListener('click', () => {
+            actualizarTabla();
         });
     }
 
@@ -161,21 +249,73 @@ document.addEventListener('DOMContentLoaded', () => {
         egresos.forEach((egreso, index) => {
             const div = document.createElement('div');
             div.className = 'egreso-item';
+            div.dataset.index = index;
             div.innerHTML = `
                 <span>${egreso.descripcion}: S/ ${egreso.monto.toFixed(2)}</span>
+                <button class="btn-editar-egreso" data-index="${index}">Editar</button>
                 <button class="btn-eliminar" data-index="${index}">Eliminar</button>
             `;
             listaEgresos.appendChild(div);
             totalEgresos += egreso.monto;
         });
 
-        document.querySelectorAll('#lista-egresos .btn-eliminar').forEach(btn => {
+        // Eventos para botones editar egresos
+        document.querySelectorAll('.btn-editar-egreso').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const index = e.target.dataset.index;
-                egresos.splice(index, 1);
-                guardarDatos();
-                actualizarEgresos();
+                editarEgreso(index);
             });
+        });
+
+        // Eventos para botones eliminar egresos
+        document.querySelectorAll('.btn-eliminar').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const index = e.target.dataset.index;
+                if (confirm('¿Estás seguro de eliminar este egreso?')) {
+                    egresos.splice(index, 1);
+                    guardarDatos();
+                    actualizarEgresos();
+                }
+            });
+        });
+    }
+
+    function editarEgreso(index) {
+        const egreso = egresos[index];
+        const div = document.querySelector(`.egreso-item[data-index="${index}"]`);
+        
+        div.innerHTML = `
+            <span>
+                <input type="text" value="${egreso.descripcion}" class="edit-egreso-desc">
+                <input type="number" value="${egreso.monto}" class="edit-egreso-monto" step="0.01">
+            </span>
+            <button class="btn-guardar-egreso" data-index="${index}">Guardar</button>
+            <button class="btn-cancelar-egreso" data-index="${index}">Cancelar</button>
+        `;
+
+        // Evento para guardar cambios
+        div.querySelector('.btn-guardar-egreso').addEventListener('click', () => {
+            const desc = div.querySelector('.edit-egreso-desc').value;
+            const monto = parseFloat(div.querySelector('.edit-egreso-monto').value);
+            
+            if (!desc || isNaN(monto)) {
+                alert('Completa todos los campos correctamente.');
+                return;
+            }
+            
+            egresos[index] = {
+                descripcion: desc,
+                monto: monto,
+                fecha: egreso.fecha
+            };
+            
+            guardarDatos();
+            actualizarEgresos();
+        });
+
+        // Evento para cancelar edición
+        div.querySelector('.btn-cancelar-egreso').addEventListener('click', () => {
+            actualizarEgresos();
         });
     }
 
@@ -253,22 +393,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const serviciosSheet = XLSX.utils.aoa_to_sheet(serviciosData);
-        
-        // Formatear columnas monetarias
-        serviciosSheet['!cols'] = [
-            {wch: 5},  // No.
-            {wch: 12}, // Fecha
-            {wch: 8},  // Hora
-            {wch: 15}, // Mascota
-            {wch: 8},  // Peso
-            {wch: 20}, // Propietario
-            {wch: 20}, // Servicio
-            {wch: 15}, // Tipo Servicio
-            {wch: 10}, // Precio
-            {wch: 15}, // Medio de Pago
-            {wch: 25}  // Observaciones
-        ];
-        
         XLSX.utils.book_append_sheet(workbook, serviciosSheet, "Servicios");
 
         // 2. Hoja de Egresos (solo si hay egresos)
@@ -289,16 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ];
 
             const egresosSheet = XLSX.utils.aoa_to_sheet(egresosData);
-            
-            // Formatear columnas
-            egresosSheet['!cols'] = [
-                {wch: 5},   // No.
-                {wch: 12},  // Fecha
-                {wch: 8},   // Hora
-                {wch: 30},  // Descripción
-                {wch: 10}   // Monto
-            ];
-            
             XLSX.utils.book_append_sheet(workbook, egresosSheet, "Egresos");
         }
 
@@ -348,13 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const resumenSheet = XLSX.utils.aoa_to_sheet(resumenData);
-        
-        // Formatear columnas
-        resumenSheet['!cols'] = [
-            {wch: 30},  // Descripción
-            {wch: 15}   // Valores
-        ];
-        
         XLSX.utils.book_append_sheet(workbook, resumenSheet, "Resumen");
 
         // Generar el archivo Excel
