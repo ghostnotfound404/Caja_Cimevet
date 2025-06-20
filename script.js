@@ -73,7 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const nombreServicio = document.getElementById('nombre-servicio').value;
         const precio = parseFloat(document.getElementById('precio').value);
 
-        if (!mascota || !propietario || !nombreServicio || !tipoSeleccionado || !precio || !medioPagoSeleccionado) {
+        if (!tipoSeleccionado || !precio || !medioPagoSeleccionado) {
             alert('Completa todos los campos obligatorios.');
             return;
         }
